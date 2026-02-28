@@ -1,0 +1,4 @@
+build/* linguist-vendored
+release/* linguist-vendored
+docs/* linguist-documentation
+*.html linguist-generated
