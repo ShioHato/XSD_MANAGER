@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+
+  <!-- =========================
+       Tipos simples reutilizables
+       ========================= -->
+
+  <!-- Texto alfanumérico (letras, números, espacios y signos comunes) -->
+  <xs:simpleType name="tAlfanumerico">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="200"/>
+      <xs:pattern value="[A-Za-zÁÉÍÓÚáéíóúÑñ0-9 .,\-()/]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- NIF/CIF simplificado -->
+  <xs:simpleType name="tNIF">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z0-9]{8,12}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Código de moneda ISO (EUR, USD, etc.) -->
+  <xs:simpleType name="tMoneda">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Z]{3}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Cantidad numérica entera positiva -->
+  <xs:simpleType name="tCantidad">
+    <xs:restriction base="xs:positiveInteger"/>
+  </xs:simpleType>
+
+  <!-- Importe numérico con máximo 2 decimales -->
+  <xs:simpleType name="tImporte2Dec">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/>
+      <xs:totalDigits value="12"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Tipo IVA en porcentaje -->
+  <xs:simpleType name="tTipoIVA">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="100"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Número de factura -->
+  <xs:simpleType name="tNumeroFactura">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z0-9\-\/]{1,30}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- =========================
+       Elemento raíz
+       ========================= -->
+
+  <xs:element name="Factura">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Emisor" type="tParte"/>
+        <xs:element name="Receptor" type="tParte"/>
+        <xs:element name="Lineas" type="tLineas"/>
+        <xs:element name="Totales" type="tTotales"/>
+      </xs:sequence>
+
+      <xs:attribute name="numero" type="tNumeroFactura" use="required"/>
+      <xs:attribute name="fecha" type="xs:date" use="required"/>
+      <xs:attribute name="moneda" type="tMoneda" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Datos de Emisor/Receptor -->
+  <xs:complexType name="tParte">
+    <xs:sequence>
+      <xs:element name="Nombre" type="tAlfanumerico"/>
+      <xs:element name="NIF" type="tNIF"/>
+      <xs:element name="Direccion" type="tAlfanumerico"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Líneas -->
+  <xs:complexType name="tLineas">
+    <xs:sequence>
+      <xs:element name="Linea" type="tLinea" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="tLinea">
+    <xs:sequence>
+      <xs:element name="Descripcion" type="tAlfanumerico"/>
+      <xs:element name="Cantidad" type="tCantidad"/>
+      <xs:element name="PrecioUnitario" type="tImporte2Dec"/>
+      <xs:element name="TipoIVA" type="tTipoIVA"/>
+      <xs:element name="BaseImponible" type="tImporte2Dec"/>
+      <xs:element name="CuotaIVA" type="tImporte2Dec"/>
+      <xs:element name="TotalLinea" type="tImporte2Dec"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Totales -->
+  <xs:complexType name="tTotales">
+    <xs:sequence>
+      <xs:element name="TotalBaseImponible" type="tImporte2Dec"/>
+      <xs:element name="TotalIVA" type="tImporte2Dec"/>
+      <xs:element name="TotalFactura" type="tImporte2Dec"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>
+
+
+
+
+
+
+
+
+
+
+
+
+

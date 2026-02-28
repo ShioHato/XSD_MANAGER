@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Factura numero="F@2026" moneda="EURO">
+  <Emisor>
+    <Nombre>ACME*Soluciones</Nombre>
+    <!-- Falta NIF (ERROR) -->
+    <Direccion></Direccion>
+  </Emisor>
+
+  <Receptor>
+    <Nombre>Cliente Demo S.A.</Nombre>
+    <NIF>ABC</NIF>
+    <Direccion>Avenida Central 25, Barcelona, España</Direccion>
+  </Receptor>
+
+  <Lineas>
+    <Linea>
+      <Descripcion>Servicio@@</Descripcion>
+      <Cantidad>0</Cantidad>
+      <PrecioUnitario>150.999</PrecioUnitario>
+      <TipoIVA>150</TipoIVA>
+      <BaseImponible>-10.00</BaseImponible>
+      <CuotaIVA>63.123</CuotaIVA>
+      <TotalLinea>363.00</TotalLinea>
+    </Linea>
+    <Linea>
+      <Descripcion>Licencia software mensual</Descripcion>
+      <Cantidad>uno</Cantidad>
+      <PrecioUnitario>80.00</PrecioUnitario>
+      <TipoIVA>21</TipoIVA>
+      <BaseImponible>80.00</BaseImponible>
+      <CuotaIVA>16.80</CuotaIVA>
+      <TotalLinea>96.80</TotalLinea>
+      <CampoExtra>No permitido</CampoExtra>
+    </Linea>
+  </Lineas>
+
+  <Totales>
+    <TotalBaseImponible>380.00</TotalBaseImponible>
+    <!-- Falta TotalIVA (ERROR) -->
+    <TotalFactura>459.80</TotalFactura>
+  </Totales>
+</Factura>
