@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QHeaderView,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -169,13 +170,17 @@ class MainWindow(QMainWindow):
 
         self.status = QLabel("Listo para validar.")
         self.status.setObjectName("StatusLabel")
-        root.addWidget(self.status)
+        self.status.hide()
 
         self.table = QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(["Nivel", "Linea", "Columna", "Mensaje"])
         h_header = self.table.horizontalHeader()
         if h_header is not None:
             h_header.setStretchLastSection(True)
+            h_header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            h_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+            h_header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+            h_header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
 
         v_header = self.table.verticalHeader()
         if v_header is not None:
@@ -311,7 +316,6 @@ class MainWindow(QMainWindow):
         self.card_total.set_value(0)
         self.card_errors.set_value(0)
         self.card_warnings.set_value(0)
-        self.status.setText("Resultados limpiados.")
 
     def run_validation(self) -> None:
         xml_path = self.xml_input.text().strip()
@@ -333,10 +337,8 @@ class MainWindow(QMainWindow):
                 line, column = self._extract_line_column_from_error(message)
                 self._save_preferences()
                 self.load_fatal_error("ERROR", line, column, message)
-                self.status.setText("Error: XML mal formado.")
                 return
             QMessageBox.critical(self, "Error de validacion", message)
-            self.status.setText("Error durante la validacion.")
             return
 
         self.last_xml_line = self._get_last_line_number(xml_path)
@@ -423,7 +425,7 @@ class MainWindow(QMainWindow):
             ok_items = (
                 QTableWidgetItem("OK"),
                 QTableWidgetItem(str(self.last_xml_line)),
-                QTableWidgetItem("-"),
+                QTableWidgetItem("N/A"),
                 QTableWidgetItem("XML valido sin errores ni avisos."),
             )
             ok_brush = QBrush(QColor("#4ade80"))
@@ -438,13 +440,16 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, 1, ok_items[1])
             self.table.setItem(row, 2, ok_items[2])
             self.table.setItem(row, 3, ok_items[3])
-            self.status.setText("OK: XML valido sin errores ni avisos.")
-        elif errors:
-            self.status.setText(f"Validacion completada con {len(errors)} error(es) y {len(warnings)} aviso(s).")
-        else:
-            self.status.setText(f"Validacion completada con {len(warnings)} aviso(s).")
+        self._refresh_message_column()
 
-        self.table.resizeColumnsToContents()
+    def _refresh_message_column(self) -> None:
+        h_header = self.table.horizontalHeader()
+        if h_header is None:
+            return
+        h_header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        h_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h_header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        h_header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
 
     def apply_styles(self) -> None:
         check_icon_rule = ""
@@ -665,7 +670,6 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
 
 
 
