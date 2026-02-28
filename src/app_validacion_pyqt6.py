@@ -1,11 +1,13 @@
 ﻿import sys
 from pathlib import Path
 import ctypes
+import re
 
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QColor, QFont, QIcon, QBrush
 from PyQt6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QFileDialog,
     QFrame,
     QGridLayout,
@@ -15,6 +17,7 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QHeaderView,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -95,7 +98,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.settings = QSettings()
-        self.setWindowTitle("Validador XML/XSD")
+        self.last_xml_line = 0
+        self.setWindowTitle("XSD MANAGER")
         self.resize(1040, 680)
         app_icon = build_app_icon()
         if not app_icon.isNull():
@@ -113,9 +117,9 @@ class MainWindow(QMainWindow):
         top_layout.setContentsMargins(16, 14, 16, 14)
         top_layout.setSpacing(2)
 
-        title = QLabel("Validador de Facturas XML")
+        title = QLabel("Validador de XML")
         title.setObjectName("MainTitle")
-        subtitle = QLabel("Validacion estructural con clasificacion de ERRORES y AVISOS")
+        subtitle = QLabel("Validacion estructural dado un XSD, con clasificacion de ERRORES y AVISOS")
         subtitle.setObjectName("Subtitle")
 
         top_layout.addWidget(title)
@@ -128,11 +132,15 @@ class MainWindow(QMainWindow):
         self.xml_input.setPlaceholderText("Selecciona un archivo XML...")
         self.xsd_input.setPlaceholderText("Selecciona un archivo XSD...")
 
-        self._build_file_row(root, "XML", self.xml_input, self.pick_xml)
         self._build_file_row(root, "XSD", self.xsd_input, self.pick_xsd)
+        self._build_file_row(root, "XML", self.xml_input, self.pick_xml)
 
         actions = QHBoxLayout()
         actions.setSpacing(8)
+        self.chk_auto_validate = QCheckBox("Validacion automatica")
+        self.chk_auto_validate.setChecked(True)
+        self.chk_auto_validate.toggled.connect(self._on_auto_validate_toggled)
+
         self.btn_validate = QPushButton("Validar")
         self.btn_validate.clicked.connect(self.run_validation)
 
@@ -143,6 +151,7 @@ class MainWindow(QMainWindow):
         actions.addWidget(self.btn_validate)
         actions.addWidget(self.btn_clear)
         actions.addStretch(1)
+        actions.addWidget(self.chk_auto_validate)
 
         root.addLayout(actions)
 
@@ -161,13 +170,17 @@ class MainWindow(QMainWindow):
 
         self.status = QLabel("Listo para validar.")
         self.status.setObjectName("StatusLabel")
-        root.addWidget(self.status)
+        self.status.hide()
 
         self.table = QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(["Nivel", "Linea", "Columna", "Mensaje"])
         h_header = self.table.horizontalHeader()
         if h_header is not None:
             h_header.setStretchLastSection(True)
+            h_header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            h_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+            h_header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+            h_header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
 
         v_header = self.table.verticalHeader()
         if v_header is not None:
@@ -182,6 +195,7 @@ class MainWindow(QMainWindow):
 
         self.apply_styles()
         self._load_last_paths()
+        self._maybe_auto_validate()
 
     def showEvent(self, a0) -> None:
         super().showEvent(a0)
@@ -257,33 +271,51 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getOpenFileName(self, "Seleccionar XML", "", "XML (*.xml);;Todos (*.*)")
         if path:
             self.xml_input.setText(path)
-            self._save_last_paths()
+            self._save_preferences()
+            self._maybe_auto_validate()
 
     def pick_xsd(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Seleccionar XSD", "", "XSD (*.xsd);;Todos (*.*)")
         if path:
             self.xsd_input.setText(path)
-            self._save_last_paths()
+            self._save_preferences()
+            self._maybe_auto_validate()
 
     def _load_last_paths(self) -> None:
         xml_path = self.settings.value("last_xml_path", "", str)
         xsd_path = self.settings.value("last_xsd_path", "", str)
+        auto_validate = self.settings.value("auto_validate", True, bool)
+        self.chk_auto_validate.setChecked(auto_validate)
 
         if xml_path and Path(xml_path).exists():
             self.xml_input.setText(xml_path)
         if xsd_path and Path(xsd_path).exists():
             self.xsd_input.setText(xsd_path)
 
-    def _save_last_paths(self) -> None:
+    def _save_preferences(self) -> None:
         self.settings.setValue("last_xml_path", self.xml_input.text().strip())
         self.settings.setValue("last_xsd_path", self.xsd_input.text().strip())
+        self.settings.setValue("auto_validate", self.chk_auto_validate.isChecked())
+
+    def _on_auto_validate_toggled(self, checked: bool) -> None:
+        self._save_preferences()
+        if checked:
+            self._maybe_auto_validate()
+
+    def _has_valid_paths(self) -> bool:
+        xml_path = self.xml_input.text().strip()
+        xsd_path = self.xsd_input.text().strip()
+        return bool(xml_path and xsd_path and Path(xml_path).exists() and Path(xsd_path).exists())
+
+    def _maybe_auto_validate(self) -> None:
+        if self.chk_auto_validate.isChecked() and self._has_valid_paths():
+            self.run_validation()
 
     def clear_results(self) -> None:
         self.table.setRowCount(0)
         self.card_total.set_value(0)
         self.card_errors.set_value(0)
         self.card_warnings.set_value(0)
-        self.status.setText("Resultados limpiados.")
 
     def run_validation(self) -> None:
         xml_path = self.xml_input.text().strip()
@@ -300,12 +332,58 @@ class MainWindow(QMainWindow):
         try:
             issues = validate(xml_path, xsd_path)
         except RuntimeError as exc:
-            QMessageBox.critical(self, "Error de validacion", str(exc))
-            self.status.setText("Error durante la validacion.")
+            message = str(exc)
+            if message.startswith("XML mal formado:"):
+                line, column = self._extract_line_column_from_error(message)
+                self._save_preferences()
+                self.load_fatal_error("ERROR", line, column, message)
+                return
+            QMessageBox.critical(self, "Error de validacion", message)
             return
 
-        self._save_last_paths()
+        self.last_xml_line = self._get_last_line_number(xml_path)
+        self._save_preferences()
         self.load_issues(issues)
+
+    def _get_last_line_number(self, xml_path: str) -> int:
+        try:
+            with open(xml_path, "rb") as file:
+                data = file.read()
+            if not data:
+                return 0
+            return data.count(b"\n") + 1
+        except OSError:
+            return 0
+
+    def _extract_line_column_from_error(self, message: str) -> tuple[int, int]:
+        match = re.search(r"line\s+(\d+),\s+column\s+(\d+)", message, flags=re.IGNORECASE)
+        if not match:
+            return 0, 0
+        return int(match.group(1)), int(match.group(2))
+
+    def load_fatal_error(self, level: str, line: int, column: int, message: str) -> None:
+        self.table.setRowCount(0)
+        self.card_total.set_value(1)
+        self.card_errors.set_value(1 if level == "ERROR" else 0)
+        self.card_warnings.set_value(1 if level == "AVISO" else 0)
+
+        self.table.insertRow(0)
+        level_item = QTableWidgetItem(level)
+        line_item = QTableWidgetItem(str(line))
+        col_item = QTableWidgetItem(str(column))
+        msg_item = QTableWidgetItem(message)
+
+        color = QColor("#ff6b6b") if level == "ERROR" else QColor("#ffcc66")
+        brush = QBrush(color)
+        for item in (level_item, line_item, col_item, msg_item):
+            item.setForeground(brush)
+            item.setData(Qt.ItemDataRole.ForegroundRole, brush)
+
+        self.table.setItem(0, 0, level_item)
+        self.table.setItem(0, 1, line_item)
+        self.table.setItem(0, 2, col_item)
+        self.table.setItem(0, 3, msg_item)
+        self.table.resizeColumnsToContents()
 
     def load_issues(self, issues: list[ValidationIssue]) -> None:
         self.table.setRowCount(0)
@@ -341,15 +419,50 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, 3, msg_item)
 
         if not issues:
-            self.status.setText("OK: XML valido sin errores ni avisos.")
-        elif errors:
-            self.status.setText(f"Validacion completada con {len(errors)} error(es) y {len(warnings)} aviso(s).")
-        else:
-            self.status.setText(f"Validacion completada con {len(warnings)} aviso(s).")
+            row = self.table.rowCount()
+            self.table.insertRow(row)
 
-        self.table.resizeColumnsToContents()
+            ok_items = (
+                QTableWidgetItem("OK"),
+                QTableWidgetItem(str(self.last_xml_line)),
+                QTableWidgetItem("N/A"),
+                QTableWidgetItem("XML valido sin errores ni avisos."),
+            )
+            ok_brush = QBrush(QColor("#4ade80"))
+            for item in ok_items:
+                item.setForeground(ok_brush)
+                item.setData(Qt.ItemDataRole.ForegroundRole, ok_brush)
+                item_font = item.font()
+                item_font.setBold(True)
+                item.setFont(item_font)
+
+            self.table.setItem(row, 0, ok_items[0])
+            self.table.setItem(row, 1, ok_items[1])
+            self.table.setItem(row, 2, ok_items[2])
+            self.table.setItem(row, 3, ok_items[3])
+        self._refresh_message_column()
+
+    def _refresh_message_column(self) -> None:
+        h_header = self.table.horizontalHeader()
+        if h_header is None:
+            return
+        h_header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        h_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        h_header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        h_header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
 
     def apply_styles(self) -> None:
+        check_icon_rule = ""
+        check_icon_path = resource_path("check_white.svg")
+        if check_icon_path.exists():
+            check_icon_qt_path = check_icon_path.resolve().as_posix()
+            check_icon_rule = (
+                "\n"
+                "            QCheckBox::indicator:checked {\n"
+                "                image: url('" + check_icon_qt_path + "');\n"
+                "            }\n"
+            )
+
         self.setStyleSheet(
             """
             QWidget {
@@ -377,6 +490,25 @@ class MainWindow(QMainWindow):
             QLabel#FieldLabel {
                 font-weight: 600;
                 color: #c9d1d9;
+            }
+            QCheckBox {
+                color: #d4d4d4;
+                spacing: 8px;
+                padding: 4px 6px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border: 1px solid #6a6a6a;
+                border-radius: 5px;
+                background: #252526;
+            }
+            QCheckBox::indicator:checked {
+                border: 1px solid #1177bb;
+                background: #0e639c;
+            }
+            QCheckBox::indicator:hover {
+                border: 1px solid #8a8a8a;
             }
             QLabel#StatusLabel {
                 color: #e6edf3;
@@ -514,6 +646,7 @@ class MainWindow(QMainWindow):
                 width: 0px;
             }
             """
+            + check_icon_rule
         )
 
 
@@ -537,7 +670,6 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
 
 
 

@@ -17,7 +17,10 @@ a = Analysis(
     [str(entrypoint)],
     pathex=[str(project_dir)],
     binaries=[],
-    datas=[(str(icon_path), 'assets/icons')],
+    datas=[
+        (str(icon_path), 'assets/icons'),
+        (str(project_dir / "assets" / "icons" / "check_white.svg"), 'assets/icons'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

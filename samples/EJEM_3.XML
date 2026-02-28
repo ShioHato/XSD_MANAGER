@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Factura numero="F-2026-0001" fecha="2026-02-28" moneda="EUR">
+  <Emisor>
+    <Nombre>ACME</Nombre>
+    <NIF>B12345678</NIF>
+    <Direccion>Calle Mayor 10</Direccion>
+  </Emisor>
+  <Receptor>
+    <Nombre>Cliente Demo</Nombre>
+    <NIF>A87654321</NIF>
+    <Direccion>Av. Central 25</Direccion>
+  </Receptor>
+  <Lineas>
+    <Linea>
+      <Descripcion>Servicio</Descripcion>
+      <Cantidad>2</Cantidad>
+      <PrecioUnitario>150.00</PrecioUnitario>
+      <TipoIVA>21</TipoIVA>
+      <BaseImponible>300.00</BaseImponible>
+      <CuotaIVA>63.00</CuotaIVA>
+      <TotalLinea>363.00</TotalLinea>
+    </Linea>
+  </Lineas>
+  <Totales>
+    <TotalBaseImponible>300.00</TotalBaseImponible>
+    <TotalIVA>63.00</TotalIVA>
+    <TotalFactura>363.00</TotalFactura>
+  </TotalesX>
+</Factura>
