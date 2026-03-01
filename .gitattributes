@@ -1,5 +1,11 @@
-build_tools/* linguist-vendored
-build/* linguist-vendored
-release/* linguist-vendored
-docs/* linguist-documentation
-*.html linguist-generated
+# Ignore build artifacts from language stats
+build/** linguist-vendored
+release/** linguist-vendored
+dist/** linguist-vendored
+
+# Treat .toc files as generated (often detected as TeX)
+*.toc linguist-generated
+
+# Optional: other build outputs
+*.spec linguist-generated
+*.exe linguist-generated
