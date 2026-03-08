@@ -6,17 +6,20 @@
 **Desktop tool for XML/XSD validation and future schema management.**  
 Built in Python.
 
-## Features (v0.1)
+## Features (v0.2)
 - Validate XML files against XSD schemas
 - Clear error reporting (line/column when possible)
-- Simple GUI workflow
+- New UI with files management
 
 ![XSD Manager Screenshot](docs/images/screenshot-2.png)
 
-## Roadmap
-- XSD/XML manager (browse, edit, organize)
-- Recent projects / favorites
-- Export validation reports
+## Features
+- **XSD/XML Manager** – Browse, edit, and organize XSD and XML files.
+- **Easy XSD Builder** – Quickly create and structure XSD schemas.
+- **XSD Standardization** – Tools to standardize and maintain consistent XSD structures.
+- **Automatic XML Test Generator** – Generate test XML files based on XSD rules.
+- **Schematron Support** – Validate XML documents using Schematron rules.
+- **Validation Report Export** – Export detailed validation reports.
 
 ## How to run
 ```bash
