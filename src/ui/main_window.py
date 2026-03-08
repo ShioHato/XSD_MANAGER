@@ -20,7 +20,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QToolBar,
     QHeaderView,
-    QListWidget,
     QSplitter,
     QPlainTextEdit,
     QSizePolicy,
@@ -68,14 +67,14 @@ class MainWindow(QMainWindow):
         root.addLayout(body)
 
         self._build_toolbar_actions()
-        left_sidebar = self._build_left_sidebar()
-        body.addWidget(left_sidebar)
-
         self.main_split = QSplitter(Qt.Orientation.Horizontal)
         self.main_split.setObjectName("MainSplit")
         self.main_split.setHandleWidth(8)
         self.main_split.setChildrenCollapsible(False)
         body.addWidget(self.main_split, 1)
+
+        left_sidebar = self._build_left_sidebar()
+        self.main_split.addWidget(left_sidebar)
         body.setStretch(1, 1)
 
         main_content = QWidget()
@@ -141,18 +140,6 @@ class MainWindow(QMainWindow):
         cards.addWidget(self.card_errors, 0, 1)
         cards.addWidget(self.card_warnings, 0, 2)
         results_layout.addLayout(cards)
-
-        validation_action_bar = QHBoxLayout()
-        validation_run_btn = QPushButton("Validar XSD + XML")
-        validation_run_btn.setObjectName("Primary")
-        validation_run_btn.clicked.connect(self.run_validation)
-        clear_validation_btn = QPushButton("Limpiar")
-        clear_validation_btn.setObjectName("Secondary")
-        clear_validation_btn.clicked.connect(self.clear_results)
-        validation_action_bar.addWidget(validation_run_btn)
-        validation_action_bar.addWidget(clear_validation_btn)
-        validation_action_bar.addStretch(1)
-        results_layout.addLayout(validation_action_bar)
 
         self.table = QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(["Nivel", "Linea", "Columna", "Mensaje"])
@@ -270,7 +257,7 @@ class MainWindow(QMainWindow):
         sidebar = QFrame()
         sidebar.setObjectName("LeftSidebar")
         sidebar.setMinimumWidth(220)
-        sidebar.setMaximumWidth(260)
+        sidebar.setMaximumWidth(520)
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
@@ -278,11 +265,6 @@ class MainWindow(QMainWindow):
         title = QLabel("Herramientas")
         title.setObjectName("SectionTitle")
         layout.addWidget(title)
-
-        nav = QListWidget()
-        nav.addItems(["VisiÃ³n general", "Validador XSD", "Historial", "Proyectos", "Ajustes"])
-        nav.setObjectName("NavList")
-        layout.addWidget(nav)
 
         self.xml_input = QLineEdit()
         self.xsd_input = QLineEdit()
@@ -296,12 +278,12 @@ class MainWindow(QMainWindow):
 
         self.validate_toggle_btn = QPushButton("Abrir validador")
         self.validate_toggle_btn.setObjectName("Primary")
-        self.validate_toggle_btn.setToolTip("Abrir/Cerrar el panel de validaciÃ³n")
+        self.validate_toggle_btn.setToolTip("Abrir/Cerrar el panel de validación")
         self.validate_toggle_btn.clicked.connect(self._toggle_validation_panel)
         self._update_validation_toggle_label()
         layout.addWidget(self.validate_toggle_btn)
 
-        self.chk_auto_validate = QCheckBox("ValidaciÃ³n automÃ¡tica")
+        self.chk_auto_validate = QCheckBox("Validación automática")
         self.chk_auto_validate.setChecked(False)
         self.chk_auto_validate.toggled.connect(self._on_auto_validate_toggled)
         self.chk_auto_validate.hide()
@@ -438,8 +420,8 @@ class MainWindow(QMainWindow):
     def show_info(self) -> None:
         QMessageBox.information(
             self,
-            "InformaciÃ³n",
-            "XSD MANAGER\nDiseÃ±ado para validar documentos XML contra esquemas XSD.",
+            "Información",
+            "XSD MANAGER\nDiseñado para validar documentos XML contra esquemas XSD.",
         )
 
     def _load_last_paths(self) -> None:
@@ -538,7 +520,15 @@ class MainWindow(QMainWindow):
         self._update_validation_toggle_label()
 
     def _toggle_validation_panel(self) -> None:
-        self._set_validation_panel_visible(not self._is_validation_panel_visible())
+        if not self._is_validation_panel_visible():
+            if not self._has_valid_paths():
+                QMessageBox.warning(self, "Faltan archivos", "Debes seleccionar XML y XSD.")
+                return
+            self._set_validation_panel_visible(True)
+            self.run_validation()
+            return
+
+        self._set_validation_panel_visible(False)
 
     def _close_validation_panel(self) -> None:
         self._set_validation_panel_visible(False)
@@ -705,4 +695,6 @@ class MainWindow(QMainWindow):
 
     def apply_styles(self) -> None:
         apply_styles(self, resource_path)
+
+
 

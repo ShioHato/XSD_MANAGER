@@ -119,13 +119,6 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
         QCheckBox::indicator:hover {
             border: 1px solid #707070;
         }
-        QLabel#StatusLabel {
-            color: #e6edf3;
-            background: #1f1f1f;
-            border: 1px solid #3a3a3a;
-            border-radius: 8px;
-            padding: 8px 10px;
-        }
         QLineEdit {
             background: #1f1f1f;
             color: #e6edf3;
@@ -166,10 +159,10 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
             background: #1a6ad3;
         }
         QPushButton#PanelOverlayClose {
-            color: #9ca3af;
+            color: #ffffff;
             background: rgba(31, 41, 55, 0.7);
             border: 1px solid rgba(107, 114, 128, 0.35);
-            border-radius: 7px;
+            border-radius: 0px;
             padding: 0;
             font-weight: 700;
             font-size: 11px;
@@ -203,18 +196,7 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
             border: 1px solid #2d2d2d;
             border-radius: 10px;
         }
-        QPlainTextEdit#XsdEditor {
-            background: #111111;
-            color: #e2e8f0;
-            border: 1px solid #2d2d2d;
-            border-radius: 10px;
-            font-family: 'Consolas', 'Cascadia Code', 'Courier New', monospace;
-            font-size: 12px;
-            padding: 10px;
-            selection-background-color: #3a3a3a;
-            selection-color: #ffffff;
-        }
-        QPlainTextEdit#XmlEditor {
+        QPlainTextEdit#XsdEditor, QPlainTextEdit#XmlEditor {
             background: #111111;
             color: #e2e8f0;
             border: 1px solid #2d2d2d;

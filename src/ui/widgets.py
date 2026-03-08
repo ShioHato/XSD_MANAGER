@@ -2,7 +2,7 @@
 
 from PyQt6.QtCore import Qt, QRect, QSize
 from PyQt6.QtGui import QColor, QPainter, QTextFormat
-from PyQt6.QtWidgets import QWidget, QFrame, QVBoxLayout, QLabel, QPlainTextEdit, QTextEdit
+from PyQt6.QtWidgets import QFrame, QPlainTextEdit, QLabel, QTextEdit, QVBoxLayout, QWidget
 
 
 class StatCard(QFrame):
@@ -143,4 +143,3 @@ class CodeEditor(QPlainTextEdit):
         selection.cursor.clearSelection()
         extra_selections.append(selection)
         self.setExtraSelections(extra_selections)
-
