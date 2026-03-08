@@ -79,6 +79,15 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
             font-size: 15px;
             font-weight: 700;
         }
+        QLabel#PanelTitle {
+            color: #d8dee9;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        QWidget#PanelHeader {
+            margin: 0px;
+            padding: 0px;
+        }
         QLabel#SidebarHint {
             background: #1a1a1a;
             border: 1px dashed #3a3a3a;
@@ -155,6 +164,29 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
         }
         QPushButton#Primary:hover {
             background: #1a6ad3;
+        }
+        QPushButton#PanelOverlayClose {
+            color: #9ca3af;
+            background: rgba(31, 41, 55, 0.7);
+            border: 1px solid rgba(107, 114, 128, 0.35);
+            border-radius: 7px;
+            padding: 0;
+            font-weight: 700;
+            font-size: 11px;
+            min-width: 14px;
+            max-width: 14px;
+            min-height: 14px;
+            max-height: 14px;
+        }
+        QPushButton#PanelOverlayClose:hover {
+            color: #ffffff;
+            background: rgba(31, 41, 55, 0.95);
+            border: 1px solid #6b7280;
+        }
+        QPushButton#PanelOverlayClose:pressed {
+            color: #ffffff;
+            background: rgba(31, 41, 55, 1.0);
+            border: 1px solid #8b939f;
         }
         QFrame#EditorCard {
             background: #202020;
@@ -314,4 +346,3 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
         """
         + check_icon_rule
     )
-

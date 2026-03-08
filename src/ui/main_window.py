@@ -1,11 +1,11 @@
-"""Main application window and interaction flows."""
+﻿"""Main application window and interaction flows."""
 
 import sys
 from pathlib import Path
 import ctypes
 import re
 
-from PyQt6.QtCore import Qt, QSettings
+from PyQt6.QtCore import Qt, QEvent, QSettings
 from PyQt6.QtGui import QColor, QBrush, QAction
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QSplitter,
     QPlainTextEdit,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -44,6 +45,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.settings = QSettings()
         self.last_xml_line = 0
+        self._overlay_close_buttons: dict[QWidget, QPushButton] = {}
         self.setWindowTitle("XSD MANAGER")
         self.resize(1240, 760)
         app_icon = build_app_icon()
@@ -52,6 +54,9 @@ class MainWindow(QMainWindow):
 
         self.toolbar = QToolBar("Acciones")
         self.toolbar.setObjectName("TopToolbar")
+        self.toolbar.setMovable(False)
+        self.toolbar.setFloatable(False)
+        self.toolbar.setAllowedAreas(Qt.ToolBarArea.TopToolBarArea)
         central = QWidget()
         self.setCentralWidget(central)
 
@@ -137,10 +142,17 @@ class MainWindow(QMainWindow):
         cards.addWidget(self.card_warnings, 0, 2)
         results_layout.addLayout(cards)
 
-        self.status = QLabel("Esperando acción de validación...")
-        self.status.setObjectName("StatusLabel")
-        self.status.hide()
-        results_layout.addWidget(self.status)
+        validation_action_bar = QHBoxLayout()
+        validation_run_btn = QPushButton("Validar XSD + XML")
+        validation_run_btn.setObjectName("Primary")
+        validation_run_btn.clicked.connect(self.run_validation)
+        clear_validation_btn = QPushButton("Limpiar")
+        clear_validation_btn.setObjectName("Secondary")
+        clear_validation_btn.clicked.connect(self.clear_results)
+        validation_action_bar.addWidget(validation_run_btn)
+        validation_action_bar.addWidget(clear_validation_btn)
+        validation_action_bar.addStretch(1)
+        results_layout.addLayout(validation_action_bar)
 
         self.table = QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(["Nivel", "Linea", "Columna", "Mensaje"])
@@ -164,6 +176,7 @@ class MainWindow(QMainWindow):
         results_layout.addWidget(self.table, 1)
         results_box.setVisible(False)
         self.results_box = results_box
+        self._add_overlay_close_button(self.results_box, self._close_validation_panel)
         self.main_vertical_split.addWidget(results_box)
         self.main_vertical_split.setSizes([1, 0])
         self.main_vertical_split.setChildrenCollapsible(False)
@@ -171,6 +184,7 @@ class MainWindow(QMainWindow):
 
         self.main_split.addWidget(main_content)
         self.main_split.setSizes([260, 1])
+        self._refresh_overlay_close_positions()
 
         self.apply_styles()
         self._load_last_paths()
@@ -233,24 +247,24 @@ class MainWindow(QMainWindow):
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
         self.toolbar.clear()
 
-        act_open_xml = QAction("Abrir XML", self)
-        act_open_xml.triggered.connect(self.pick_xml)
-        act_open_xsd = QAction("Abrir XSD", self)
-        act_open_xsd.triggered.connect(self.pick_xsd)
-        act_validate = QAction("Validar", self)
-        act_validate.triggered.connect(self.run_validation)
-        act_clear = QAction("Limpiar", self)
-        act_clear.triggered.connect(self.clear_results)
-        act_dummy = QAction("Ajustes", self)
-        act_dummy.setEnabled(False)
+        act_open = QAction("Abrir", self)
+        act_open.triggered.connect(self.pick_xsd)
+        act_save = QAction("Guardar", self)
+        act_save.triggered.connect(self.save_xsd)
 
-        self.toolbar.addAction(act_open_xml)
-        self.toolbar.addAction(act_open_xsd)
-        self.toolbar.addSeparator()
-        self.toolbar.addAction(act_validate)
-        self.toolbar.addAction(act_clear)
-        self.toolbar.addSeparator()
-        self.toolbar.addAction(act_dummy)
+        self.toolbar.addAction(act_open)
+        self.toolbar.addAction(act_save)
+
+        act_settings = QAction("Ajustes", self)
+        act_info = QAction("Info", self)
+        act_info.triggered.connect(self.show_info)
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.toolbar.addWidget(spacer)
+
+        self.toolbar.addAction(act_settings)
+        self.toolbar.addAction(act_info)
 
     def _build_left_sidebar(self) -> QFrame:
         sidebar = QFrame()
@@ -266,7 +280,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
 
         nav = QListWidget()
-        nav.addItems(["Visión general", "Validador XSD", "Historial", "Proyectos", "Ajustes"])
+        nav.addItems(["VisiÃ³n general", "Validador XSD", "Historial", "Proyectos", "Ajustes"])
         nav.setObjectName("NavList")
         layout.addWidget(nav)
 
@@ -280,12 +294,14 @@ class MainWindow(QMainWindow):
         self._build_file_row(layout, "XML", self.xml_input, self.pick_xml)
         self._build_file_row(layout, "XSD", self.xsd_input, self.pick_xsd)
 
-        validate_btn = QPushButton("Validar XSD + XML")
-        validate_btn.setObjectName("Primary")
-        validate_btn.clicked.connect(self.run_validation)
-        layout.addWidget(validate_btn)
+        self.validate_toggle_btn = QPushButton("Abrir validador")
+        self.validate_toggle_btn.setObjectName("Primary")
+        self.validate_toggle_btn.setToolTip("Abrir/Cerrar el panel de validaciÃ³n")
+        self.validate_toggle_btn.clicked.connect(self._toggle_validation_panel)
+        self._update_validation_toggle_label()
+        layout.addWidget(self.validate_toggle_btn)
 
-        self.chk_auto_validate = QCheckBox("Validación automática")
+        self.chk_auto_validate = QCheckBox("ValidaciÃ³n automÃ¡tica")
         self.chk_auto_validate.setChecked(False)
         self.chk_auto_validate.toggled.connect(self._on_auto_validate_toggled)
         self.chk_auto_validate.hide()
@@ -297,6 +313,21 @@ class MainWindow(QMainWindow):
         layout.addStretch(1)
         return sidebar
 
+    def _build_panel_header(self, title: str) -> QWidget:
+        header = QWidget()
+        header.setObjectName("PanelHeader")
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(6, 2, 6, 2)
+        header_layout.setSpacing(4)
+
+        title_label = QLabel(title)
+        title_label.setObjectName("PanelTitle")
+        title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch(1)
+
+        return header
+
     def _build_xml_viewer_panel(self) -> QWidget:
         panel = QWidget()
         panel.setObjectName("XmlSidePanel")
@@ -304,8 +335,7 @@ class MainWindow(QMainWindow):
         panel_layout.setContentsMargins(0, 0, 0, 0)
         panel_layout.setSpacing(8)
 
-        xml_view_title = QLabel("Visor y editor XML")
-        xml_view_title.setObjectName("SectionTitle")
+        panel_layout.addWidget(self._build_panel_header("Visor y editor XML"))
         self.xml_editor = CodeEditor()
         self.xml_editor.setObjectName("XmlEditor")
         self.xml_editor.setPlaceholderText("Selecciona un XML para mostrar su contenido.")
@@ -313,9 +343,40 @@ class MainWindow(QMainWindow):
         self.xml_editor.setReadOnly(False)
         self.xml_editor.setEnabled(False)
 
-        panel_layout.addWidget(xml_view_title)
         panel_layout.addWidget(self.xml_editor, 1)
+        self._add_overlay_close_button(panel, self._close_xml_panel)
         return panel
+
+    def _add_overlay_close_button(self, panel: QWidget, on_close) -> None:
+        close_btn = QPushButton("\u00d7", panel)
+        close_btn.setObjectName("PanelOverlayClose")
+        close_btn.setFixedSize(14, 14)
+        close_btn.setToolTip("Cerrar")
+        close_btn.clicked.connect(on_close)
+        close_btn.hide()
+        close_btn.raise_()
+        self._overlay_close_buttons[panel] = close_btn
+        panel.installEventFilter(self)
+
+    def _refresh_overlay_close_positions(self) -> None:
+        for panel in list(self._overlay_close_buttons):
+            self._position_overlay_close(panel)
+
+    def _position_overlay_close(self, panel: QWidget) -> None:
+        btn = self._overlay_close_buttons.get(panel)
+        if btn is None:
+            return
+        margin = 6
+        btn.move(max(0, panel.width() - btn.width() - margin), margin)
+
+    def _set_overlay_close_visible(self, panel: QWidget, visible: bool) -> None:
+        btn = self._overlay_close_buttons.get(panel)
+        if btn is None:
+            return
+        btn.setVisible(visible)
+        if visible:
+            self._position_overlay_close(panel)
+
 
     def _build_file_row(self, parent_layout: QVBoxLayout | QHBoxLayout, label_text: str, line_edit: QLineEdit, pick_fn) -> None:
         row = QHBoxLayout()
@@ -349,6 +410,37 @@ class MainWindow(QMainWindow):
             self._save_preferences()
             self._load_xsd_into_editor(path)
             self._maybe_auto_validate()
+
+    def save_xsd(self) -> None:
+        path = self.xsd_input.text().strip()
+        if not path:
+            path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Guardar XSD",
+                "schema.xsd",
+                "XSD (*.xsd);;Todos (*.*)",
+            )
+            if not path:
+                return
+            self.xsd_input.setText(path)
+            self._save_preferences()
+
+        try:
+            with open(path, "w", encoding="utf-8") as file:
+                file.write(self.xsd_editor.toPlainText())
+        except OSError as exc:
+            QMessageBox.critical(self, "Error al guardar", str(exc))
+            return
+
+        self._save_preferences()
+        QMessageBox.information(self, "Guardar XSD", "Archivo guardado correctamente.")
+
+    def show_info(self) -> None:
+        QMessageBox.information(
+            self,
+            "InformaciÃ³n",
+            "XSD MANAGER\nDiseÃ±ado para validar documentos XML contra esquemas XSD.",
+        )
 
     def _load_last_paths(self) -> None:
         xml_path = self.settings.value("last_xml_path", "", str)
@@ -422,10 +514,57 @@ class MainWindow(QMainWindow):
         self.card_total.set_value(0)
         self.card_errors.set_value(0)
         self.card_warnings.set_value(0)
-        self.results_box.setVisible(False)
-        self.status.hide()
+
+    def _is_validation_panel_visible(self) -> bool:
+        if not hasattr(self, "results_box"):
+            return False
+        if not self.results_box.isVisible():
+            return False
         if hasattr(self, "main_vertical_split"):
+            sizes = self.main_vertical_split.sizes()
+            if len(sizes) > 1 and sizes[1] <= 0:
+                return False
+        return True
+
+    def _set_validation_panel_visible(self, visible: bool) -> None:
+        if not hasattr(self, "main_vertical_split") or not hasattr(self, "results_box"):
+            return
+        if visible:
+            self.main_vertical_split.setSizes([3, 1])
+            self.results_box.setVisible(True)
+        else:
             self.main_vertical_split.setSizes([1, 0])
+            self.results_box.setVisible(False)
+        self._update_validation_toggle_label()
+
+    def _toggle_validation_panel(self) -> None:
+        self._set_validation_panel_visible(not self._is_validation_panel_visible())
+
+    def _close_validation_panel(self) -> None:
+        self._set_validation_panel_visible(False)
+
+    def _update_validation_toggle_label(self) -> None:
+        if not hasattr(self, "validate_toggle_btn"):
+            return
+        self.validate_toggle_btn.setText(
+            "Ocultar validador" if self._is_validation_panel_visible() else "Abrir validador"
+        )
+
+    def _close_xml_panel(self) -> None:
+        self.xml_view_panel.setVisible(False)
+        if hasattr(self, "editor_split"):
+            self.editor_split.setSizes([1, 0])
+
+    def eventFilter(self, watched, event):  # type: ignore[override]
+        if watched in self._overlay_close_buttons:
+            if event.type() == QEvent.Type.Enter:
+                self._set_overlay_close_visible(watched, True)
+            elif event.type() == QEvent.Type.Leave:
+                self._set_overlay_close_visible(watched, False)
+            elif event.type() == QEvent.Type.Resize:
+                if self._overlay_close_buttons.get(watched) and self._overlay_close_buttons[watched].isVisible():
+                    self._position_overlay_close(watched)
+        return super().eventFilter(watched, event)
 
     def run_validation(self) -> None:
         xml_path = self.xml_input.text().strip()
@@ -453,12 +592,8 @@ class MainWindow(QMainWindow):
 
         self.last_xml_line = self._get_last_line_number(xml_path)
         self._save_preferences()
-        if hasattr(self, "main_vertical_split"):
-            self.main_vertical_split.setSizes([3, 1])
-        self.results_box.setVisible(True)
+        self._set_validation_panel_visible(True)
         self.load_issues(issues)
-        self.status.setText("Validación completada.")
-        self.status.show()
 
     def _get_last_line_number(self, xml_path: str) -> int:
         try:
@@ -477,9 +612,7 @@ class MainWindow(QMainWindow):
         return int(match.group(1)), int(match.group(2))
 
     def load_fatal_error(self, level: str, line: int, column: int, message: str) -> None:
-        self.results_box.setVisible(True)
-        if hasattr(self, "main_vertical_split"):
-            self.main_vertical_split.setSizes([3, 1])
+        self._set_validation_panel_visible(True)
         self.table.setRowCount(0)
         self.card_total.set_value(1)
         self.card_errors.set_value(1 if level == "ERROR" else 0)
@@ -572,3 +705,4 @@ class MainWindow(QMainWindow):
 
     def apply_styles(self) -> None:
         apply_styles(self, resource_path)
+
