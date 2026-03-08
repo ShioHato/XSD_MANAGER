@@ -47,6 +47,17 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
             padding: 8px 10px;
             margin-right: 2px;
         }
+        QToolButton#TopToolbarViewButton {
+            padding-right: 14px;
+            margin-right: 4px;
+        }
+        QToolButton#TopToolbarViewButton::menu-indicator {
+            image: none;
+            width: 0px;
+            height: 0px;
+            subcontrol-position: left center;
+            subcontrol-origin: padding;
+        }
         QToolBar#TopToolbar QToolButton:hover {
             background: #3f3f3f;
             color: #ffffff;

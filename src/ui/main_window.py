@@ -8,7 +8,6 @@ import re
 from PyQt6.QtCore import Qt, QEvent, QSettings
 from PyQt6.QtGui import QColor, QBrush, QAction
 from PyQt6.QtWidgets import (
-    QCheckBox,
     QFileDialog,
     QFrame,
     QGridLayout,
@@ -17,6 +16,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMessageBox,
+    QMenu,
     QPushButton,
     QToolBar,
     QHeaderView,
@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -234,13 +235,34 @@ class MainWindow(QMainWindow):
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
         self.toolbar.clear()
 
-        act_open = QAction("Abrir", self)
-        act_open.triggered.connect(self.pick_xsd)
+        open_menu = QMenu(self)
+        open_menu.addAction("Abrir XSD", self.pick_xsd)
+        open_menu.addAction("Abrir XML", self.pick_xml)
+        open_menu.addAction("Nuevo XSD", self._create_new_xsd)
+        open_menu.addAction("Nuevo XML", self._create_new_xml)
+        open_btn = QToolButton()
+        open_btn.setText("Abrir")
+        open_btn.setObjectName("TopToolbarOpenButton")
+        open_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        open_btn.setMenu(open_menu)
+        open_btn.setArrowType(Qt.ArrowType.NoArrow)
+        open_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+
         act_save = QAction("Guardar", self)
         act_save.triggered.connect(self.save_xsd)
+        view_menu = QMenu(self)
+        view_menu.addAction("Abrir vista XML")
+        view_btn = QToolButton()
+        view_btn.setText("Vista")
+        view_btn.setObjectName("TopToolbarViewButton")
+        view_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        view_btn.setMenu(view_menu)
+        view_btn.setArrowType(Qt.ArrowType.NoArrow)
+        view_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
-        self.toolbar.addAction(act_open)
+        self.toolbar.addWidget(open_btn)
         self.toolbar.addAction(act_save)
+        self.toolbar.addWidget(view_btn)
 
         act_settings = QAction("Ajustes", self)
         act_info = QAction("Info", self)
@@ -283,15 +305,6 @@ class MainWindow(QMainWindow):
         self._update_validation_toggle_label()
         layout.addWidget(self.validate_toggle_btn)
 
-        self.chk_auto_validate = QCheckBox("Validación automática")
-        self.chk_auto_validate.setChecked(False)
-        self.chk_auto_validate.toggled.connect(self._on_auto_validate_toggled)
-        self.chk_auto_validate.hide()
-        layout.addWidget(self.chk_auto_validate)
-
-        dummy = QLabel("Panel lateral de utilidades")
-        dummy.setObjectName("SidebarHint")
-        layout.addWidget(dummy)
         layout.addStretch(1)
         return sidebar
 
@@ -317,7 +330,7 @@ class MainWindow(QMainWindow):
         panel_layout.setContentsMargins(0, 0, 0, 0)
         panel_layout.setSpacing(8)
 
-        panel_layout.addWidget(self._build_panel_header("Visor y editor XML"))
+        panel_layout.addWidget(self._build_panel_header("XML"))
         self.xml_editor = CodeEditor()
         self.xml_editor.setObjectName("XmlEditor")
         self.xml_editor.setPlaceholderText("Selecciona un XML para mostrar su contenido.")
@@ -385,6 +398,17 @@ class MainWindow(QMainWindow):
             self._load_xml_into_editor(path)
             self._maybe_auto_validate()
 
+    def _create_new_xml(self) -> None:
+        self.xml_input.clear()
+        self.xml_editor.setEnabled(True)
+        self.xml_editor.setPlainText("")
+        self.xml_view_panel.setVisible(True)
+        if hasattr(self, "editor_split"):
+            sizes = self.editor_split.sizes()
+            if not sizes or sizes[1] == 0:
+                self.editor_split.setSizes([3, 1])
+        self._save_preferences()
+
     def pick_xsd(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Seleccionar XSD", "", "XSD (*.xsd);;Todos (*.*)")
         if path:
@@ -392,6 +416,12 @@ class MainWindow(QMainWindow):
             self._save_preferences()
             self._load_xsd_into_editor(path)
             self._maybe_auto_validate()
+
+    def _create_new_xsd(self) -> None:
+        self.xsd_input.clear()
+        self.xsd_editor.setEnabled(True)
+        self.xsd_editor.setPlainText("")
+        self._save_preferences()
 
     def save_xsd(self) -> None:
         path = self.xsd_input.text().strip()
@@ -427,7 +457,6 @@ class MainWindow(QMainWindow):
     def _load_last_paths(self) -> None:
         xml_path = self.settings.value("last_xml_path", "", str)
         xsd_path = self.settings.value("last_xsd_path", "", str)
-        self.chk_auto_validate.setChecked(False)
 
         if xml_path and Path(xml_path).exists():
             self.xml_input.setText(xml_path)
@@ -439,12 +468,6 @@ class MainWindow(QMainWindow):
     def _save_preferences(self) -> None:
         self.settings.setValue("last_xml_path", self.xml_input.text().strip())
         self.settings.setValue("last_xsd_path", self.xsd_input.text().strip())
-        self.settings.setValue("auto_validate", self.chk_auto_validate.isChecked())
-
-    def _on_auto_validate_toggled(self, checked: bool) -> None:
-        self._save_preferences()
-        if checked:
-            self._maybe_auto_validate()
 
     def _has_valid_paths(self) -> bool:
         xml_path = self.xml_input.text().strip()
@@ -452,7 +475,7 @@ class MainWindow(QMainWindow):
         return bool(xml_path and xsd_path and Path(xml_path).exists() and Path(xsd_path).exists())
 
     def _maybe_auto_validate(self) -> None:
-        if self.chk_auto_validate.isChecked() and self._has_valid_paths():
+        if self._has_valid_paths():
             self.run_validation()
 
     def _load_xml_into_editor(self, xml_path: str) -> None:
@@ -695,6 +718,3 @@ class MainWindow(QMainWindow):
 
     def apply_styles(self) -> None:
         apply_styles(self, resource_path)
-
-
-
