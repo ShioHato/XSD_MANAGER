@@ -252,11 +252,36 @@ class MainWindow(QMainWindow):
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
         self.toolbar.clear()
 
+        act_open_xsd = QAction("Abrir XSD\tCtrl+O", self)
+        act_open_xsd.triggered.connect(self.pick_xsd)
+        act_open_xsd.setShortcut(QKeySequence("Ctrl+O"))
+        act_open_xsd.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+
+        act_open_xml = QAction("Abrir XML\tCtrl+Alt+O", self)
+        act_open_xml.triggered.connect(self.pick_xml)
+        act_open_xml.setShortcut(QKeySequence("Ctrl+Alt+O"))
+        act_open_xml.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+
+        act_new_xsd = QAction("Nuevo XSD\tCtrl+N", self)
+        act_new_xsd.triggered.connect(self._create_new_xsd)
+        act_new_xsd.setShortcut(QKeySequence("Ctrl+N"))
+        act_new_xsd.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+
+        act_new_xml = QAction("Nuevo XML\tCtrl+Alt+N", self)
+        act_new_xml.triggered.connect(self._create_new_xml)
+        act_new_xml.setShortcut(QKeySequence("Ctrl+Alt+N"))
+        act_new_xml.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+
+        self.addAction(act_open_xsd)
+        self.addAction(act_open_xml)
+        self.addAction(act_new_xsd)
+        self.addAction(act_new_xml)
+
         open_menu = QMenu(self)
-        open_menu.addAction("Abrir XSD", self.pick_xsd)
-        open_menu.addAction("Abrir XML", self.pick_xml)
-        open_menu.addAction("Nuevo XSD", self._create_new_xsd)
-        open_menu.addAction("Nuevo XML", self._create_new_xml)
+        open_menu.addAction(act_open_xsd)
+        open_menu.addAction(act_open_xml)
+        open_menu.addAction(act_new_xsd)
+        open_menu.addAction(act_new_xml)
         open_btn = QToolButton()
         open_btn.setText("Abrir")
         open_btn.setObjectName("TopToolbarOpenButton")
@@ -265,8 +290,14 @@ class MainWindow(QMainWindow):
         open_btn.setArrowType(Qt.ArrowType.DownArrow)
         open_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
+        open_xml_view = QAction("Abrir vista XML\tCtrl+Alt+A", self)
+        open_xml_view.triggered.connect(self._open_xml_view_from_toolbar)
+        open_xml_view.setShortcut(QKeySequence("Ctrl+Alt+A"))
+        open_xml_view.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+        self.addAction(open_xml_view)
+
         view_menu = QMenu(self)
-        view_menu.addAction("Abrir vista XML")
+        view_menu.addAction(open_xml_view)
         view_btn = QToolButton()
         view_btn.setText("Vista")
         view_btn.setObjectName("TopToolbarViewButton")
@@ -565,6 +596,13 @@ class MainWindow(QMainWindow):
                 self.editor_split.setSizes([3, 1])
         self._save_preferences()
 
+    def _open_xml_view_from_toolbar(self) -> None:
+        self.xml_view_panel.setVisible(True)
+        if hasattr(self, "editor_split"):
+            sizes = self.editor_split.sizes()
+            if not sizes or sizes[1] == 0:
+                self.editor_split.setSizes([3, 1])
+
     def pick_xsd(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Seleccionar XSD", "", "XSD (*.xsd);;Todos (*.*)")
         if path:
@@ -595,7 +633,7 @@ class MainWindow(QMainWindow):
                 "XML (*.xml);;Todos (*.*)",
             )
             if not path:
-                return
+                return False
             self.xml_input.setText(path)
             self._save_preferences()
 
@@ -622,7 +660,7 @@ class MainWindow(QMainWindow):
                 "XSD (*.xsd);;Todos (*.*)",
             )
             if not path:
-                return
+                return False
             self.xsd_input.setText(path)
             self._save_preferences()
 
