@@ -33,6 +33,30 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
             width: 1px;
             height: 1px;
         }
+        QSplitter::handle {
+            border: 0px;
+            border-radius: 0px;
+            background: transparent;
+            margin: 0px;
+        }
+        QSplitter::handle:horizontal {
+            border-radius: 0px;
+            background: transparent;
+            border-left: 0px solid #3a3a3a;
+            border-right: 0px solid #3a3a3a;
+            width: 8px;
+        }
+        QSplitter::handle:vertical {
+            border-radius: 0px;
+            background: transparent;
+            border-top: 0px solid #3a3a3a;
+            border-bottom: 0px solid #3a3a3a;
+        }
+        QSplitter#MainSplit::handle {
+            background: #3a3a3a;
+            border-radius: 0px;
+            border: 0px;
+        }
         QToolBar#TopToolbar {
             background: #252526;
             border: 1px solid #333333;
@@ -86,7 +110,8 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
             padding: 4px;
         }
         QLabel#SectionTitle {
-            color: #e5e5e5;
+            background: transparent;
+            color: #DAFF00;
             font-size: 15px;
             font-weight: 700;
         }
@@ -169,6 +194,18 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
         QPushButton#Primary:hover {
             background: #1a6ad3;
         }
+        QPushButton#SidebarPrimary {
+            text-align: left;
+            padding-left: 12px;
+            padding-right: 12px;
+            border-radius: 8px;
+            background: #0f60d6;
+            color: #ffffff;
+            border: 1px solid #2f7edb;
+        }
+        QPushButton#SidebarPrimary:hover {
+            background: #1a6ad3;
+        }
         QPushButton#PanelOverlayClose {
             color: #ffffff;
             background: rgba(31, 41, 55, 0.7);
@@ -207,7 +244,9 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
             border: 1px solid #2d2d2d;
             border-radius: 10px;
         }
-        QPlainTextEdit#XsdEditor, QPlainTextEdit#XmlEditor {
+        QPlainTextEdit#CodeEditor,
+        QPlainTextEdit#XsdEditor,
+        QPlainTextEdit#XmlEditor {
             background: #111111;
             color: #e2e8f0;
             border: 1px solid #2d2d2d;
@@ -222,22 +261,26 @@ def apply_styles(target: QWidget, resource_path: Callable[[str], Path]) -> None:
             background: #0d0d0d;
         }
         QSplitter#MainSplit::handle {
-            background: #3a3a3a;
+            background: transparent;
             width: 8px;
-            border-radius: 4px;
+            border-radius: 0px;
+            border: 0px;
+            margin: 0px;
         }
         QSplitter#MainSplit::handle:horizontal,
         QSplitter#MainVerticalSplit::handle:vertical,
         QSplitter#EditorSplit::handle:horizontal {
-            background: #3a3a3a;
+            background: transparent;
             width: 8px;
             height: 8px;
-            border-radius: 4px;
+            border-radius: 0px;
+            border: 0px;
+            margin: 0px;
         }
         QSplitter#MainSplit::handle:hover,
         QSplitter#MainVerticalSplit::handle:hover,
         QSplitter#EditorSplit::handle:hover {
-            background: #666666;
+            background: transparent;
         }
         QFrame#StatCard {
             border-radius: 12px;

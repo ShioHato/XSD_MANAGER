@@ -5,7 +5,7 @@ from pathlib import Path
 import ctypes
 import re
 
-from PyQt6.QtCore import Qt, QEvent, QSettings
+from PyQt6.QtCore import Qt, QEvent, QSettings, QTimer
 from PyQt6.QtGui import QColor, QBrush, QAction
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         self._build_toolbar_actions()
         self.main_split = QSplitter(Qt.Orientation.Horizontal)
         self.main_split.setObjectName("MainSplit")
-        self.main_split.setHandleWidth(8)
+        self.main_split.setHandleWidth(7)
         self.main_split.setChildrenCollapsible(False)
         body.addWidget(self.main_split, 1)
 
@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
         xsd_view_title = QLabel("XSD")
         xsd_view_title.setObjectName("SectionTitle")
         self.xsd_editor = CodeEditor()
-        self.xsd_editor.setObjectName("XsdEditor")
+        self.xsd_editor.setObjectName("CodeEditor")
         self.xsd_editor.setPlaceholderText("Selecciona un XSD para visualizar su contenido.")
         self.xsd_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.xsd_editor.setReadOnly(False)
@@ -171,7 +171,9 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.main_vertical_split, 1)
 
         self.main_split.addWidget(main_content)
-        self.main_split.setSizes([260, 1])
+        self.main_split.setSizes([85, 1])
+        self._sidebar_default_width = 85
+        QTimer.singleShot(0, self._apply_default_sidebar_width)
         self._refresh_overlay_close_positions()
 
         self.apply_styles()
@@ -181,6 +183,16 @@ class MainWindow(QMainWindow):
     def showEvent(self, a0) -> None:
         super().showEvent(a0)
         self._apply_windows_dark_title_bar()
+        self._apply_default_sidebar_width()
+
+    def _apply_default_sidebar_width(self) -> None:
+        if not hasattr(self, "main_split"):
+            return
+        total = max(0, self.main_split.width() - self.main_split.handleWidth())
+        if total <= self._sidebar_default_width + 1:
+            return
+        first = min(self._sidebar_default_width, 400)
+        self.main_split.setSizes([first, max(1, total - first)])
 
     def _apply_windows_dark_title_bar(self) -> None:
         if sys.platform != "win32":
@@ -278,28 +290,21 @@ class MainWindow(QMainWindow):
     def _build_left_sidebar(self) -> QFrame:
         sidebar = QFrame()
         sidebar.setObjectName("LeftSidebar")
-        sidebar.setMinimumWidth(220)
-        sidebar.setMaximumWidth(520)
+        sidebar.setMinimumWidth(85)
+        sidebar.setMaximumWidth(400)
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
 
-        title = QLabel("Herramientas")
-        title.setObjectName("SectionTitle")
-        layout.addWidget(title)
-
         self.xml_input = QLineEdit()
         self.xsd_input = QLineEdit()
-        self.xml_input.setPlaceholderText("Selecciona un archivo XML...")
-        self.xsd_input.setPlaceholderText("Selecciona un archivo XSD...")
         self.xml_input.setReadOnly(True)
         self.xsd_input.setReadOnly(True)
-
-        self._build_file_row(layout, "XML", self.xml_input, self.pick_xml)
-        self._build_file_row(layout, "XSD", self.xsd_input, self.pick_xsd)
+        self.xml_input.hide()
+        self.xsd_input.hide()
 
         self.validate_toggle_btn = QPushButton("Abrir validador")
-        self.validate_toggle_btn.setObjectName("Primary")
+        self.validate_toggle_btn.setObjectName("SidebarPrimary")
         self.validate_toggle_btn.setToolTip("Abrir/Cerrar el panel de validación")
         self.validate_toggle_btn.clicked.connect(self._toggle_validation_panel)
         self._update_validation_toggle_label()
@@ -324,15 +329,17 @@ class MainWindow(QMainWindow):
         return header
 
     def _build_xml_viewer_panel(self) -> QWidget:
-        panel = QWidget()
-        panel.setObjectName("XmlSidePanel")
+        panel = QFrame()
+        panel.setObjectName("EditorPanel")
         panel_layout = QVBoxLayout(panel)
         panel_layout.setContentsMargins(0, 0, 0, 0)
         panel_layout.setSpacing(8)
 
-        panel_layout.addWidget(self._build_panel_header("XML"))
+        xml_view_title = QLabel("XML")
+        xml_view_title.setObjectName("SectionTitle")
+        panel_layout.addWidget(xml_view_title)
         self.xml_editor = CodeEditor()
-        self.xml_editor.setObjectName("XmlEditor")
+        self.xml_editor.setObjectName("CodeEditor")
         self.xml_editor.setPlaceholderText("Selecciona un XML para mostrar su contenido.")
         self.xml_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.xml_editor.setReadOnly(False)
