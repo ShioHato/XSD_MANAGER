@@ -11,7 +11,7 @@ Built in Python.
 - Clear error reporting (line/column when possible)
 - Simple GUI workflow
 
-![XSD Manager Screenshot](docs/images/screenshot-1.png)
+![XSD Manager Screenshot](docs/images/screenshot-2.png)
 
 ## Roadmap
 - XSD/XML manager (browse, edit, organize)
