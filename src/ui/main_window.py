@@ -114,6 +114,7 @@ class MainWindow(QMainWindow):
         self.xsd_editor.setPlaceholderText("Selecciona un XSD para visualizar su contenido.")
         self.xsd_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.xsd_editor.setReadOnly(False)
+        self.xsd_editor.set_syntax(True)
         xsd_view_layout.addWidget(xsd_view_title)
         xsd_view_layout.addWidget(self.xsd_editor, 1)
 
@@ -523,6 +524,7 @@ class MainWindow(QMainWindow):
         self.xml_editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.xml_editor.setReadOnly(False)
         self.xml_editor.setEnabled(False)
+        self.xml_editor.set_syntax(True)
 
         panel_layout.addWidget(self.xml_editor, 1)
         self._add_overlay_close_button(panel, self._close_xml_panel)

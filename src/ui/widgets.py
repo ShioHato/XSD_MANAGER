@@ -1,7 +1,7 @@
 """Reusable UI widgets for the application."""
 
-from PyQt6.QtCore import Qt, QRect, QSize
-from PyQt6.QtGui import QColor, QPainter, QTextFormat
+from PyQt6.QtCore import Qt, QRect, QSize, QRegularExpression
+from PyQt6.QtGui import QColor, QFont, QPainter, QTextCharFormat, QTextFormat, QSyntaxHighlighter
 from PyQt6.QtWidgets import QFrame, QPlainTextEdit, QLabel, QTextEdit, QVBoxLayout, QWidget
 
 
@@ -28,6 +28,57 @@ class StatCard(QFrame):
         self.value_label.setText(str(value))
 
 
+class XmlSyntaxHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent) -> None:
+        super().__init__(parent)
+        self._setup_formats()
+        self._setup_rules()
+
+    def _setup_formats(self) -> None:
+        self.tag_name_format = QTextCharFormat()
+        self.tag_name_format.setForeground(QColor("#569cd6"))
+        self.tag_name_format.setFontWeight(QFont.Weight.Bold)
+
+        self.attribute_name_format = QTextCharFormat()
+        self.attribute_name_format.setForeground(QColor("#9cdcfe"))
+
+        self.attribute_value_format = QTextCharFormat()
+        self.attribute_value_format.setForeground(QColor("#ce9178"))
+
+        self.attribute_equal_format = QTextCharFormat()
+        self.attribute_equal_format.setForeground(QColor("#f0f0f0"))
+
+        self.comment_format = QTextCharFormat()
+        self.comment_format.setForeground(QColor("#608b4e"))
+
+        self.pi_format = QTextCharFormat()
+        self.pi_format.setForeground(QColor("#d7ba7d"))
+
+    def _setup_rules(self) -> None:
+        self.rules = [
+            (QRegularExpression(r"<!--[\s\S]*?-->"), self.comment_format),
+            (QRegularExpression(r"<\?[\s\S]*?\?>"), self.pi_format),
+            (QRegularExpression(r"\b([A-Za-z_:][A-Za-z0-9._:-]*)\b(?=\s*=\")"), self.attribute_name_format),
+            (QRegularExpression(r"\b([A-Za-z_:][A-Za-z0-9._:-]*)\b(?=\s*=')"), self.attribute_name_format),
+            (QRegularExpression(r"([\"']).*?\1"), self.attribute_value_format),
+            (QRegularExpression(r"</?[A-Za-z_:][A-Za-z0-9._:-]*"), self.tag_name_format),
+        ]
+
+    def highlightBlock(self, text: str) -> None:  # type: ignore[override]
+        for expression, color_format in self.rules:
+            it = expression.globalMatch(text)
+            while it.hasNext():
+                match = it.next()
+                self.setFormat(match.capturedStart(), match.capturedLength(), color_format)
+
+        # Highlight equal signs between attribute names and values
+        equal_expression = QRegularExpression(r"=")
+        it_equal = equal_expression.globalMatch(text)
+        while it_equal.hasNext():
+            match = it_equal.next()
+            self.setFormat(match.capturedStart(), match.capturedLength(), self.attribute_equal_format)
+
+
 class LineNumberArea(QWidget):
     def __init__(self, editor: "CodeEditor") -> None:
         super().__init__(editor)
@@ -50,9 +101,19 @@ class CodeEditor(QPlainTextEdit):
         self.blockCountChanged.connect(self.update_line_number_area_width)
         self.updateRequest.connect(self.update_line_number_area)
         self.cursorPositionChanged.connect(self.highlight_current_line)
+        self.syntax_highlighter: XmlSyntaxHighlighter | None = None
 
         self.update_line_number_area_width(0)
         self.highlight_current_line()
+
+    def set_syntax(self, enabled: bool) -> None:
+        if enabled:
+            if self.syntax_highlighter is None:
+                self.syntax_highlighter = XmlSyntaxHighlighter(self.document())
+        else:
+            if self.syntax_highlighter is not None:
+                self.syntax_highlighter.setDocument(None)
+            self.syntax_highlighter = None
 
     def line_number_area_width(self) -> int:
         digits = len(str(max(1, self.blockCount())))
