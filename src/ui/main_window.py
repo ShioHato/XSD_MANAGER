@@ -6,7 +6,7 @@ import ctypes
 import re
 
 from PyQt6.QtCore import Qt, QEvent, QSettings, QTimer
-from PyQt6.QtGui import QColor, QBrush, QAction, QKeySequence
+from PyQt6.QtGui import QColor, QBrush, QAction, QIcon, QKeySequence
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -47,10 +47,15 @@ class MainWindow(QMainWindow):
         self.last_xml_line = 0
         self._overlay_close_buttons: dict[QWidget, QPushButton] = {}
         self.setWindowTitle("XSD MANAGER")
+        self.setWindowIconText("XSD MANAGER")
         self.resize(1240, 760)
         app_icon = build_app_icon()
         if not app_icon.isNull():
             self.setWindowIcon(app_icon)
+        else:
+            fallback_icon_path = resource_path("xsd_app_icon.ico")
+            if fallback_icon_path.exists():
+                self.setWindowIcon(QIcon(str(fallback_icon_path)))
 
         self.toolbar = QToolBar("Acciones")
         self.toolbar.setObjectName("TopToolbar")

@@ -1,10 +1,10 @@
 import sys
 
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import QApplication
 
 from src.ui.main_window import MainWindow
-from src.ui.utils import build_app_icon, set_windows_app_id
+from src.ui.utils import build_app_icon, resource_path, set_windows_app_id
 
 
 def main() -> int:
@@ -14,8 +14,12 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setOrganizationName("Rocio")
     app.setApplicationName("Validador XML/XSD")
+    app.setApplicationDisplayName("XSD MANAGER")
 
+    icon_path = resource_path("xsd_app_icon.ico")
     app_icon = build_app_icon()
+    if app_icon.isNull() and icon_path.exists():
+        app_icon = QIcon(str(icon_path))
     if not app_icon.isNull():
         app.setWindowIcon(app_icon)
 
