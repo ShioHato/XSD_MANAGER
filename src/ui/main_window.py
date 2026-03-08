@@ -67,6 +67,7 @@ class MainWindow(QMainWindow):
         body.setSpacing(12)
         root.addLayout(body)
 
+        self._build_validation_status_widget()
         self._build_toolbar_actions()
         self.main_split = QSplitter(Qt.Orientation.Horizontal)
         self.main_split.setObjectName("MainSplit")
@@ -186,6 +187,9 @@ class MainWindow(QMainWindow):
         self._apply_windows_dark_title_bar()
         self._apply_default_sidebar_width()
 
+    def resizeEvent(self, a0) -> None:  # type: ignore[override]
+        super().resizeEvent(a0)
+
     def _apply_default_sidebar_width(self) -> None:
         if not hasattr(self, "main_split"):
             return
@@ -261,8 +265,6 @@ class MainWindow(QMainWindow):
         open_btn.setArrowType(Qt.ArrowType.NoArrow)
         open_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
-        act_save = QAction("Guardar", self)
-        act_save.triggered.connect(self.save_xsd)
         view_menu = QMenu(self)
         view_menu.addAction("Abrir vista XML")
         view_btn = QToolButton()
@@ -273,20 +275,54 @@ class MainWindow(QMainWindow):
         view_btn.setArrowType(Qt.ArrowType.NoArrow)
         view_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
-        self.toolbar.addWidget(open_btn)
-        self.toolbar.addAction(act_save)
-        self.toolbar.addWidget(view_btn)
+        act_save = QAction("Guardar", self)
+        act_save.triggered.connect(self.save_xsd)
+        save_btn = QToolButton()
+        save_btn.setText("Guardar")
+        save_btn.setObjectName("TopToolbarOpenButton")
+        save_btn.setDefaultAction(act_save)
+        save_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
         act_settings = QAction("Ajustes", self)
         act_info = QAction("Info", self)
         act_info.triggered.connect(self.show_info)
+        settings_btn = QToolButton()
+        settings_btn.setText("Ajustes")
+        settings_btn.setObjectName("TopToolbarOpenButton")
+        settings_btn.setDefaultAction(act_settings)
+        settings_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.toolbar.addWidget(spacer)
+        info_btn = QToolButton()
+        info_btn.setText("Info")
+        info_btn.setObjectName("TopToolbarOpenButton")
+        info_btn.setDefaultAction(act_info)
+        info_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
-        self.toolbar.addAction(act_settings)
-        self.toolbar.addAction(act_info)
+        toolbar_container = QWidget()
+        toolbar_layout = QHBoxLayout(toolbar_container)
+        toolbar_layout.setContentsMargins(0, 0, 0, 0)
+        toolbar_layout.setSpacing(3)
+
+        left_actions = QWidget()
+        left_layout = QHBoxLayout(left_actions)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(3)
+        left_layout.addWidget(open_btn)
+        left_layout.addWidget(save_btn)
+        left_layout.addWidget(view_btn)
+
+        right_actions = QWidget()
+        right_layout = QHBoxLayout(right_actions)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(8)
+        right_layout.addWidget(self.validation_status_widget)
+        right_layout.addWidget(settings_btn)
+        right_layout.addWidget(info_btn)
+        toolbar_layout.addWidget(left_actions)
+        toolbar_layout.addStretch(1)
+        toolbar_layout.addWidget(right_actions)
+
+        self.toolbar.addWidget(toolbar_container)
 
     def _build_left_sidebar(self) -> QFrame:
         sidebar = QFrame()
@@ -313,6 +349,93 @@ class MainWindow(QMainWindow):
 
         layout.addStretch(1)
         return sidebar
+
+    def _build_validation_status_widget(self) -> None:
+        self.validation_status_widget = QWidget()
+        self.validation_status_widget.setObjectName("ValidationStatusContainer")
+        self.validation_status_widget.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.validation_status_widget.setVisible(False)
+        self.validation_status_widget.setSizePolicy(
+            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Preferred,
+        )
+        self.validation_status_widget.setMinimumWidth(140)
+        self.validation_status_widget.setMaximumWidth(140)
+        status_layout = QHBoxLayout(self.validation_status_widget)
+        status_layout.setContentsMargins(0, 0, 6, 0)
+        status_layout.setSpacing(6)
+        status_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        def make_chip(color: str, text: str = "") -> QWidget:
+            colors = {
+                "Blue": "#1a6ad3",
+                "Error": "#f14c4c",
+                "Warning": "#cca700",
+                "Ok": "#22c55e",
+            }
+            item = QWidget()
+            item.setObjectName("ValidationChip")
+            item.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            item_layout = QHBoxLayout(item)
+            item_layout.setContentsMargins(0, 0, 0, 0)
+            item_layout.setSpacing(4)
+            dot = QFrame()
+            dot.setObjectName(f"ValidationDot{color}")
+            dot.setFixedSize(9, 9)
+            dot.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            dot.setAutoFillBackground(True)
+            dot.setStyleSheet(f"background-color: {colors.get(color, '#d4d4d4')}; border-radius: 4px;")
+            item_layout.addWidget(dot)
+            value = QLabel(text)
+            value.setObjectName(f"ValidationValue{color}")
+            value.setStyleSheet("color: #d4d4d4; font-size: 12px; font-weight: 600; background: transparent;")
+            value.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+            item_layout.addWidget(value)
+            item.dot = dot  # type: ignore[attr-defined]
+            item.value = value  # type: ignore[attr-defined]
+            return item
+
+        self.validation_chip_total = make_chip("Blue")
+        self.validation_chip_errors = make_chip("Error")
+        self.validation_chip_warnings = make_chip("Warning")
+        self.validation_chip_ok = make_chip("Ok")
+        self.validation_chip_ok.value.setVisible(False)
+
+        self.validation_chip_total.hide()
+        self.validation_chip_errors.hide()
+        self.validation_chip_warnings.hide()
+        self.validation_chip_ok.hide()
+
+        status_layout.addWidget(self.validation_chip_total)
+        status_layout.addWidget(self.validation_chip_errors)
+        status_layout.addWidget(self.validation_chip_warnings)
+        status_layout.addWidget(self.validation_chip_ok)
+
+    def _set_validation_status(self, total: int, errors: int, warnings: int, *, has_run: bool = True) -> None:
+        if not has_run:
+            self.validation_status_widget.setVisible(False)
+            self.validation_chip_total.hide()
+            self.validation_chip_errors.hide()
+            self.validation_chip_warnings.hide()
+            self.validation_chip_ok.hide()
+            return
+
+        if total == 0 and errors == 0 and warnings == 0:
+            self.validation_chip_total.hide()
+            self.validation_chip_errors.hide()
+            self.validation_chip_warnings.hide()
+            self.validation_chip_ok.show()
+            self.validation_status_widget.setVisible(True)
+            return
+
+        self.validation_chip_ok.hide()
+        self.validation_status_widget.setVisible(True)
+        self.validation_chip_total.show()
+        self.validation_chip_total.value.setText(str(total))
+        self.validation_chip_errors.setVisible(errors > 0)
+        self.validation_chip_warnings.setVisible(warnings > 0)
+        self.validation_chip_errors.value.setText(str(errors))
+        self.validation_chip_warnings.value.setText(str(warnings))
 
     def _build_panel_header(self, title: str) -> QWidget:
         header = QWidget()
@@ -541,6 +664,7 @@ class MainWindow(QMainWindow):
         self.card_total.set_value(0)
         self.card_errors.set_value(0)
         self.card_warnings.set_value(0)
+        self._set_validation_status(0, 0, 0, has_run=False)
 
     def _is_validation_panel_visible(self) -> bool:
         if not hasattr(self, "results_box"):
@@ -602,15 +726,18 @@ class MainWindow(QMainWindow):
         return super().eventFilter(watched, event)
 
     def run_validation(self) -> None:
+        self._set_validation_status(0, 0, 0, has_run=True)
         xml_path = self.xml_input.text().strip()
         xsd_path = self.xsd_input.text().strip()
 
         if not xml_path or not xsd_path:
             QMessageBox.warning(self, "Faltan archivos", "Debes seleccionar XML y XSD.")
+            self._set_validation_status(0, 0, 0, has_run=False)
             return
 
         if not Path(xml_path).exists() or not Path(xsd_path).exists():
             QMessageBox.critical(self, "Ruta invalida", "No se encontro el XML o el XSD indicado.")
+            self._set_validation_status(0, 0, 0, has_run=False)
             return
 
         try:
@@ -623,6 +750,7 @@ class MainWindow(QMainWindow):
                 self.load_fatal_error("ERROR", line, column, message)
                 return
             QMessageBox.critical(self, "Error de validacion", message)
+            self._set_validation_status(1, 1, 0, has_run=True)
             return
 
         self.last_xml_line = self._get_last_line_number(xml_path)
@@ -652,6 +780,7 @@ class MainWindow(QMainWindow):
         self.card_total.set_value(1)
         self.card_errors.set_value(1 if level == "ERROR" else 0)
         self.card_warnings.set_value(1 if level == "AVISO" else 0)
+        self._set_validation_status(1, 1 if level == "ERROR" else 0, 1 if level == "AVISO" else 0)
 
         self.table.insertRow(0)
         level_item = QTableWidgetItem(level)
@@ -727,6 +856,7 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, 1, ok_items[1])
             self.table.setItem(row, 2, ok_items[2])
             self.table.setItem(row, 3, ok_items[3])
+        self._set_validation_status(len(issues), len(errors), len(warnings))
         self._refresh_message_column()
 
     def _refresh_message_column(self) -> None:

@@ -38,18 +38,38 @@
             border: 1px solid transparent;
             border-radius: 0px;
             padding: 6px;
-            spacing: 6px;
+            spacing: 3px;
+            min-height: 42px;
+        }
+        QToolBar#TopToolbar QWidget {
+            background: #252526;
         }
         QToolBar#TopToolbar QToolButton {
             background: #333333;
             color: #e5e7eb;
             border-radius: 0px;
-            padding: 8px 10px;
-            margin-right: 2px;
+            padding: 8px 12px;
+            margin: 0px;
+            border: 1px solid transparent;
         }
+        QToolButton#TopToolbarOpenButton,
         QToolButton#TopToolbarViewButton {
-            padding-right: 14px;
-            margin-right: 4px;
+            background: #0f60d6;
+            color: #ffffff;
+            border: 1px solid transparent;
+            border-radius: 0px;
+            padding: 8px 12px;
+            margin: 0px;
+            font-weight: 600;
+        }
+        QToolButton#TopToolbarOpenButton:hover,
+        QToolButton#TopToolbarViewButton:hover {
+            background: #1a6ad3;
+            border: 1px solid transparent;
+        }
+        QToolButton#TopToolbarOpenButton:pressed,
+        QToolButton#TopToolbarViewButton:pressed {
+            background: #1c4ea8;
         }
         QToolButton#TopToolbarViewButton::menu-indicator {
             image: none;
@@ -61,6 +81,57 @@
         QToolBar#TopToolbar QToolButton:hover {
             background: #3f3f3f;
             color: #ffffff;
+        }
+        QWidget#ValidationStatusContainer {
+            margin: 0px;
+            spacing: 6px;
+            background: transparent;
+            border: 0px;
+        }
+        QWidget#ValidationChip {
+            background: transparent;
+            min-height: 16px;
+            max-height: 16px;
+        }
+        QWidget#ValidationDotBlue,
+        QWidget#ValidationDotError,
+        QWidget#ValidationDotWarning,
+        QWidget#ValidationDotOk {
+            background: transparent;
+            min-width: 9px;
+            max-width: 9px;
+            min-height: 9px;
+            max-height: 9px;
+            border-radius: 4px;
+            padding: 0px;
+            border: 0px;
+            margin: 0px;
+        }
+        QWidget#ValidationDotBlue {
+            background: #1a6ad3;
+            border: 0px;
+        }
+        QWidget#ValidationDotError {
+            background: #f14c4c;
+            border: 0px;
+        }
+        QWidget#ValidationDotWarning {
+            background: #cca700;
+            border: 0px;
+        }
+        QWidget#ValidationDotOk {
+            background: #22c55e;
+            border: 0px;
+        }
+        QLabel#ValidationValueBlue,
+        QLabel#ValidationValueError,
+        QLabel#ValidationValueWarning {
+            color: #d4d4d4;
+            background: transparent;
+            padding: 0px;
+            margin: 0px;
+            font-size: 12px;
+            font-weight: 600;
         }
         QLabel#MainTitle {
             background: transparent;
@@ -87,7 +158,7 @@
         }
         QLabel#SectionTitle {
             background: transparent;
-            color: #DAFF00;
+            color: #ffffff;
             font-size: 15px;
             font-weight: 700;
         }
@@ -264,13 +335,13 @@
             background: #1b1b1b;
         }
         QFrame#StatCard[accent="error"] {
-            border-left: 0px solid transparent;
+            border-left: 5px solid #f14c4c;
         }
         QFrame#StatCard[accent="warning"] {
-            border-left: 0px solid transparent;
+            border-left: 5px solid #cca700;
         }
         QFrame#StatCard[accent="neutral"] {
-            border-left: 0px solid transparent;
+            border-left: 5px solid #1a6ad3;
         }
         QLabel#CardTitle {
             background: transparent;
