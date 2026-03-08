@@ -1,84 +1,48 @@
-﻿import argparse
+from __future__ import annotations
+
+import argparse
 import sys
-from dataclasses import dataclass
+from pathlib import Path
 
-import lxml.etree as etree
-
-
-WARNING_KEYS = (
-    "pattern",
-    "length",
-    "minlength",
-    "maxlength",
-    "datatype",
-    "type",
-    "fractiondigits",
-    "totaldigits",
-    "mininclusive",
-    "maxinclusive",
-    "minexclusive",
-    "maxexclusive",
-)
-
-ERROR_KEYS = (
-    "missing child element",
-    "attribute",
-    "is required",
-    "not expected",
-    "no matching global declaration",
-)
-
-
-@dataclass
-class ValidationIssue:
-    level: str
-    line: int
-    column: int
-    message: str
+try:
+    from xsd_manager.services.validation.use_case import ValidationUseCase
+    from xsd_manager.services.validators.base import ValidatorError
+    from xsd_manager.services.validators.xsd_validator import (
+        ERROR_KEYS,
+        classify_message as _classify_message,
+        WARNING_KEYS,
+        XsdValidator,
+    )
+    from xsd_manager.domain.models import ValidationIssue, ValidationRequest
+except ModuleNotFoundError:
+    from src.xsd_manager.services.validation.use_case import ValidationUseCase
+    from src.xsd_manager.services.validators.base import ValidatorError
+    from src.xsd_manager.services.validators.xsd_validator import (
+        ERROR_KEYS,
+        classify_message as _classify_message,
+        WARNING_KEYS,
+        XsdValidator,
+    )
+    from src.xsd_manager.domain.models import ValidationIssue, ValidationRequest
 
 
 def classify_message(message: str) -> str:
-    text = message.lower()
-
-    for key in ERROR_KEYS:
-        if key in text:
-            return "ERROR"
-
-    for key in WARNING_KEYS:
-        if key in text:
-            return "AVISO"
-
-    return "ERROR"
+    return _classify_message(message).value
 
 
 def validate(xml_path: str, xsd_path: str) -> list[ValidationIssue]:
-    issues: list[ValidationIssue] = []
+    request = ValidationRequest(
+        xml_path=Path(xml_path),
+        xsd_paths=[Path(xsd_path)],
+    )
+    use_case = ValidationUseCase(validators=[XsdValidator()])
 
     try:
-        xsd_doc = etree.parse(xsd_path) 
-        schema = etree.XMLSchema(xsd_doc) 
-    except (etree.XMLSyntaxError, etree.XMLSchemaParseError) as exc: 
-        raise RuntimeError(f"No se pudo cargar el XSD: {exc}") from exc
+        report = use_case.run(request)
+    except ValidatorError as exc:
+        raise RuntimeError(str(exc)) from exc
 
-    try:
-        xml_doc = etree.parse(xml_path) 
-    except etree.XMLSyntaxError as exc: 
-        raise RuntimeError(f"XML mal formado: {exc}") from exc
-
-    schema.validate(xml_doc)
-
-    for entry in schema.error_log:
-        level = classify_message(entry.message)
-        issues.append(
-            ValidationIssue(
-                level=level,
-                line=entry.line,
-                column=entry.column,
-                message=entry.message,
-            )
-        )
-
-    return issues
+    return report.issues
 
 
 def print_report(issues: list[ValidationIssue]) -> int:
@@ -120,4 +84,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
