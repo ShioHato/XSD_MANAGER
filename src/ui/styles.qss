@@ -71,13 +71,6 @@
         QToolButton#TopToolbarViewButton:pressed {
             background: #1c4ea8;
         }
-        QToolButton#TopToolbarViewButton::menu-indicator {
-            image: none;
-            width: 0px;
-            height: 0px;
-            subcontrol-position: left center;
-            subcontrol-origin: padding;
-        }
         QToolBar#TopToolbar QToolButton:hover {
             background: #3f3f3f;
             color: #ffffff;
@@ -425,6 +418,39 @@
         }
         QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
             width: 0px;
+        }
+        QMenu {
+            background: #252526;
+            color: #e5e7eb;
+            border: 1px solid transparent;
+            border-radius: 0px;
+            padding: 4px;
+        }
+        QMenu::item {
+            background: transparent;
+            color: #d4d4d4;
+            padding: 6px 12px 6px 12px;
+            border-radius: 0px;
+            margin: 1px 2px;
+        }
+        QMenu::item:selected {
+            background: #3a3a3a;
+            color: #ffffff;
+        }
+        QMenu::item:pressed {
+            background: #1f1f1f;
+            color: #ffffff;
+        }
+        QMenu::separator {
+            height: 1px;
+            background: #2a2a2a;
+            margin: 4px 8px 4px 8px;
+        }
+        QToolButton#TopToolbarOpenButton QToolTip,
+        QToolButton#TopToolbarViewButton QToolTip {
+            background: #101010;
+            border: 1px solid #2a2a2a;
+            color: #ffffff;
         }
         
 

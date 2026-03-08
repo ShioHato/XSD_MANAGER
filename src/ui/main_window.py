@@ -6,7 +6,7 @@ import ctypes
 import re
 
 from PyQt6.QtCore import Qt, QEvent, QSettings, QTimer
-from PyQt6.QtGui import QColor, QBrush, QAction
+from PyQt6.QtGui import QColor, QBrush, QAction, QKeySequence
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -262,7 +262,7 @@ class MainWindow(QMainWindow):
         open_btn.setObjectName("TopToolbarOpenButton")
         open_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         open_btn.setMenu(open_menu)
-        open_btn.setArrowType(Qt.ArrowType.NoArrow)
+        open_btn.setArrowType(Qt.ArrowType.DownArrow)
         open_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
         view_menu = QMenu(self)
@@ -272,15 +272,38 @@ class MainWindow(QMainWindow):
         view_btn.setObjectName("TopToolbarViewButton")
         view_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         view_btn.setMenu(view_menu)
-        view_btn.setArrowType(Qt.ArrowType.NoArrow)
+        view_btn.setArrowType(Qt.ArrowType.DownArrow)
         view_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
-        act_save = QAction("Guardar", self)
-        act_save.triggered.connect(self.save_xsd)
+        save_all_action = QAction("Guardar todo\tCtrl+S", self)
+        save_all_action.triggered.connect(self.save_all)
+        save_all_action.setShortcut(QKeySequence("Ctrl+S"))
+        save_all_action.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+
+        save_xsd_action = QAction("Guardar XSD\tCtrl+Shift+S", self)
+        save_xsd_action.triggered.connect(self.save_xsd)
+        save_xsd_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
+        save_xsd_action.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+
+        save_xml_action = QAction("Guardar XML\tCtrl+Alt+S", self)
+        save_xml_action.triggered.connect(self.save_xml)
+        save_xml_action.setShortcut(QKeySequence("Ctrl+Alt+S"))
+        save_xml_action.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+
+        self.addAction(save_all_action)
+        self.addAction(save_xsd_action)
+        self.addAction(save_xml_action)
+
+        save_menu = QMenu(self)
+        save_menu.addAction(save_all_action)
+        save_menu.addAction(save_xsd_action)
+        save_menu.addAction(save_xml_action)
         save_btn = QToolButton()
         save_btn.setText("Guardar")
         save_btn.setObjectName("TopToolbarOpenButton")
-        save_btn.setDefaultAction(act_save)
+        save_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        save_btn.setMenu(save_menu)
+        save_btn.setArrowType(Qt.ArrowType.DownArrow)
         save_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
 
         act_settings = QAction("Ajustes", self)
@@ -550,6 +573,38 @@ class MainWindow(QMainWindow):
             self._load_xsd_into_editor(path)
             self._maybe_auto_validate()
 
+    def _save_editor_content(self, path: str, text: str, title: str) -> bool:
+        if not path:
+            return False
+        try:
+            with open(path, "w", encoding="utf-8") as file:
+                file.write(text)
+        except OSError as exc:
+            QMessageBox.critical(self, f"Error al guardar {title}", str(exc))
+            return False
+        self._save_preferences()
+        return True
+
+    def save_xml(self, *, silent: bool = False) -> bool:
+        path = self.xml_input.text().strip()
+        if not path:
+            path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Guardar XML",
+                "document.xml",
+                "XML (*.xml);;Todos (*.*)",
+            )
+            if not path:
+                return
+            self.xml_input.setText(path)
+            self._save_preferences()
+
+        if self._save_editor_content(path, self.xml_editor.toPlainText(), "XML"):
+            if not silent:
+                QMessageBox.information(self, "Guardar XML", "Archivo XML guardado correctamente.")
+            return True
+        return False
+
     def _create_new_xsd(self) -> None:
         self.xsd_input.clear()
         self.xsd_editor.setEnabled(True)
@@ -557,7 +612,7 @@ class MainWindow(QMainWindow):
         self._set_file_title(self.xsd_view_title, "XSD", "Nuevo XSD")
         self._save_preferences()
 
-    def save_xsd(self) -> None:
+    def save_xsd(self, *, silent: bool = False) -> bool:
         path = self.xsd_input.text().strip()
         if not path:
             path, _ = QFileDialog.getSaveFileName(
@@ -571,15 +626,35 @@ class MainWindow(QMainWindow):
             self.xsd_input.setText(path)
             self._save_preferences()
 
-        try:
-            with open(path, "w", encoding="utf-8") as file:
-                file.write(self.xsd_editor.toPlainText())
-        except OSError as exc:
-            QMessageBox.critical(self, "Error al guardar", str(exc))
+        if self._save_editor_content(path, self.xsd_editor.toPlainText(), "XSD"):
+            if not silent:
+                QMessageBox.information(self, "Guardar XSD", "Archivo XSD guardado correctamente.")
+            return True
+        return False
+
+    def save_all(self) -> None:
+        if not self.xsd_input.text().strip() and not self.xml_input.text().strip():
+            QMessageBox.warning(self, "Faltan archivos", "No hay archivos abiertos para guardar.")
             return
 
-        self._save_preferences()
-        QMessageBox.information(self, "Guardar XSD", "Archivo guardado correctamente.")
+        saved_any = False
+        saved_xsd = False
+        saved_xml = False
+
+        if self.xsd_input.text().strip():
+            saved_xsd = self.save_xsd(silent=True)
+            saved_any = saved_any or saved_xsd
+        if self.xml_input.text().strip():
+            saved_xml = self.save_xml(silent=True)
+            saved_any = saved_any or saved_xml
+
+        if saved_any:
+            if saved_xsd and saved_xml:
+                QMessageBox.information(self, "Guardar todo", "Todos los archivos se han guardado.")
+            elif saved_xsd:
+                QMessageBox.information(self, "Guardar XSD", "El archivo XSD se ha guardado.")
+            elif saved_xml:
+                QMessageBox.information(self, "Guardar XML", "El archivo XML se ha guardado.")
 
     def show_info(self) -> None:
         QMessageBox.information(
