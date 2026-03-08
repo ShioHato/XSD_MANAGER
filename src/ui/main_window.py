@@ -107,6 +107,7 @@ class MainWindow(QMainWindow):
 
         xsd_view_title = QLabel("XSD")
         xsd_view_title.setObjectName("SectionTitle")
+        self.xsd_view_title = xsd_view_title
         self.xsd_editor = CodeEditor()
         self.xsd_editor.setObjectName("CodeEditor")
         self.xsd_editor.setPlaceholderText("Selecciona un XSD para visualizar su contenido.")
@@ -337,6 +338,7 @@ class MainWindow(QMainWindow):
 
         xml_view_title = QLabel("XML")
         xml_view_title.setObjectName("SectionTitle")
+        self.xml_view_title = xml_view_title
         panel_layout.addWidget(xml_view_title)
         self.xml_editor = CodeEditor()
         self.xml_editor.setObjectName("CodeEditor")
@@ -409,6 +411,7 @@ class MainWindow(QMainWindow):
         self.xml_input.clear()
         self.xml_editor.setEnabled(True)
         self.xml_editor.setPlainText("")
+        self._set_file_title(self.xml_view_title, "XML", "Nuevo XML")
         self.xml_view_panel.setVisible(True)
         if hasattr(self, "editor_split"):
             sizes = self.editor_split.sizes()
@@ -428,6 +431,7 @@ class MainWindow(QMainWindow):
         self.xsd_input.clear()
         self.xsd_editor.setEnabled(True)
         self.xsd_editor.setPlainText("")
+        self._set_file_title(self.xsd_view_title, "XSD", "Nuevo XSD")
         self._save_preferences()
 
     def save_xsd(self) -> None:
@@ -487,6 +491,7 @@ class MainWindow(QMainWindow):
 
     def _load_xml_into_editor(self, xml_path: str) -> None:
         if not xml_path or not Path(xml_path).exists():
+            self._set_file_title(self.xml_view_title, "XML")
             self.xml_editor.setPlainText("")
             self.xml_editor.setEnabled(False)
             self.xml_view_panel.setVisible(False)
@@ -501,6 +506,7 @@ class MainWindow(QMainWindow):
             content = ""
         self.xml_editor.setPlainText(content)
         self.xml_editor.setEnabled(True)
+        self._set_file_title(self.xml_view_title, "XML", xml_path)
         self.xml_view_panel.setVisible(True)
         if hasattr(self, "editor_split"):
             current_sizes = self.editor_split.sizes()
@@ -509,6 +515,7 @@ class MainWindow(QMainWindow):
 
     def _load_xsd_into_editor(self, xsd_path: str) -> None:
         if not xsd_path or not Path(xsd_path).exists():
+            self._set_file_title(self.xsd_view_title, "XSD")
             self.xsd_editor.setPlainText("")
             self.xsd_editor.setEnabled(False)
             return
@@ -520,6 +527,14 @@ class MainWindow(QMainWindow):
             content = ""
         self.xsd_editor.setPlainText(content)
         self.xsd_editor.setEnabled(True)
+        self._set_file_title(self.xsd_view_title, "XSD", xsd_path)
+
+    def _set_file_title(self, title_label: QLabel, prefix: str, file_path: str | None = None) -> None:
+        if not file_path:
+            title_label.setText(prefix)
+            return
+        title = Path(file_path).name or file_path
+        title_label.setText(f"{prefix} - {title}")
 
     def clear_results(self) -> None:
         self.table.setRowCount(0)
